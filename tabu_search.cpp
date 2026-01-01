@@ -378,7 +378,7 @@ void greedyInitial(Routes *r)
     {
         int bestRoute = -1;
         int bestPosition = -1;
-        int bestCost = INT_MAX;
+        double minCost = DBL_MAX;
 
         for (int routeIdx = 0; routeIdx < k; routeIdx++)
         {
@@ -397,9 +397,12 @@ void greedyInitial(Routes *r)
                     insertCost = d[cur->val][customer] + d[customer][nextVal] - d[cur->val][nextVal];
                 }
 
-                if (insertCost < bestCost)
+                double alpha = 0.5;
+                double adjustedCost = insertCost + alpha * r->routes[routeIdx]->length;
+
+                if (adjustedCost < minCost)
                 {
-                    bestCost = insertCost;
+                    minCost = adjustedCost;
                     bestRoute = routeIdx;
                     bestPosition = cur->val;
                 }
@@ -748,48 +751,60 @@ void balanceRoutes(Routes *r, double timeLimit = 2.0)
         if (gap <= 10)
             break;
 
-        Node *bestNode = nullptr;
-        int bestDelta = INT_MAX;
+        Node *bestNode1 = nullptr;
+        Node *bestNode2 = nullptr;
+        double bestDelta = DBL_MAX;
 
-        Node *cur = r->routes[maxIdx]->start->next;
-        while (cur != nullptr)
+        Node *cur1 = r->routes[maxIdx]->start->next;
+        while (cur1 != nullptr)
         {
-            int removeFromMax = (cur->prev ? d[cur->prev->val][cur->next ? cur->next->val : 0] : 0) - (cur->prev ? d[cur->prev->val][cur->val] : 0) - (cur->next ? d[cur->val][cur->next->val] : 0);
-
-            int bestPosMin = r->routes[minIdx]->findBestInsertPosition(cur);
-            Node *insertPos = r->routes[minIdx]->start;
-            while (insertPos && insertPos->val != bestPosMin)
-                insertPos = insertPos->next;
-
-            int addToMin = 0;
-            if (insertPos && insertPos->next)
-                addToMin = d[insertPos->val][cur->val] + d[cur->val][insertPos->next->val] - d[insertPos->val][insertPos->next->val];
-            else if (insertPos)
-                addToMin = d[insertPos->val][cur->val];
-
-            int newMaxLen = r->routes[maxIdx]->length + removeFromMax;
-            int newMinLen = r->routes[minIdx]->length + addToMin;
-            int newMax = max(newMaxLen, newMinLen);
-
-            double currentMax = getMaxLength(r);
-            double delta = newMax - currentMax;
-
-            if (delta <= 0 && abs(newMaxLen - newMinLen) < gap)
+            Node *cur2 = r->routes[minIdx]->start->next;
+            while (cur2 != nullptr)
             {
-                if (delta < bestDelta)
+                Move m;
+                m.m = SWAP;
+                m.v1 = cur1->val;
+                m.v2 = cur2->val;
+                m.k1 = maxIdx;
+                m.k2 = minIdx;
+
+                double delta = calculateDelta(m, r);
+
+                int prev1 = cur1->prev->val;
+                int next1 = (cur1->next) ? cur1->next->val : -1;
+                int deltaRemove1 = deltaRemove(prev1, cur1->val, next1);
+                int deltaInsert1 = deltaInsert(prev1, cur2->val, next1);
+                int deltaK1 = deltaRemove1 + deltaInsert1;
+
+                int prev2 = cur2->prev->val;
+                int next2 = (cur2->next) ? cur2->next->val : -1;
+                int deltaRemove2 = deltaRemove(prev2, cur2->val, next2);
+                int deltaInsert2 = deltaInsert(prev2, cur1->val, next2);
+                int deltaK2 = deltaRemove2 + deltaInsert2;
+
+                int newMaxLen = r->routes[maxIdx]->length + deltaK1;
+                int newMinLen = r->routes[minIdx]->length + deltaK2;
+
+                if (delta <= 0 && abs(newMaxLen - newMinLen) < gap)
                 {
-                    bestDelta = delta;
-                    bestNode = cur;
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestNode1 = cur1;
+                        bestNode2 = cur2;
+                    }
                 }
+                cur2 = cur2->next;
             }
-            cur = cur->next;
+            cur1 = cur1->next;
         }
 
-        if (bestNode != nullptr)
+        if (bestNode1 != nullptr && bestNode2 != nullptr)
         {
             Move m;
-            m.m = RELOCATE;
-            m.v1 = bestNode->val;
+            m.m = SWAP;
+            m.v1 = bestNode1->val;
+            m.v2 = bestNode2->val;
             m.k1 = maxIdx;
             m.k2 = minIdx;
             performMove(m, r);
@@ -797,6 +812,86 @@ void balanceRoutes(Routes *r, double timeLimit = 2.0)
         else
         {
             break;
+        }
+    }
+}
+
+void ejectionChains(Routes *r)
+{
+    int maxIdx = 0;
+    for (int i = 0; i < k; i++)
+    {
+        if (r->routes[i]->length > r->routes[maxIdx]->length)
+            maxIdx = i;
+    }
+
+    vector<pair<int, int>> customerCosts;
+    Node *cur = r->routes[maxIdx]->start->next;
+
+    while (cur != nullptr)
+    {
+        int cost = 0;
+        if (cur->prev)
+        {
+            cost += d[cur->prev->val][cur->val];
+        }
+        if (cur->next)
+        {
+            cost += d[cur->val][cur->next->val];
+        }
+        customerCosts.push_back({cost, cur->val});
+        cur = cur->next;
+    }
+
+    sort(customerCosts.rbegin(), customerCosts.rend());
+
+    int numToEject = min(3, (int)customerCosts.size());
+
+    for (int i = 0; i < numToEject; i++)
+    {
+        int customerVal = customerCosts[i].second;
+
+        Node *removedNode = r->routes[maxIdx]->remove(customerVal);
+        if (removedNode == nullptr)
+        {
+            continue;
+        }
+
+        int bestRoute = -1;
+        int bestPosition = -1;
+        int minIncrease = INT_MAX;
+
+        for (int routeIdx = 0; routeIdx < k; routeIdx++)
+        {
+            Node *curPos = r->routes[routeIdx]->start;
+            while (curPos != nullptr)
+            {
+                int nextVal = (curPos->next) ? curPos->next->val : -1;
+
+                int insertCost;
+                if (nextVal == -1)
+                {
+                    insertCost = d[curPos->val][customerVal];
+                }
+                else
+                {
+                    insertCost = d[curPos->val][customerVal] + d[customerVal][nextVal] - d[curPos->val][nextVal];
+                }
+
+                if (insertCost < minIncrease)
+                {
+                    minIncrease = insertCost;
+                    bestRoute = routeIdx;
+                    bestPosition = curPos->val;
+                }
+
+                curPos = curPos->next;
+            }
+        }
+
+        if (bestRoute != -1 && bestPosition != -1)
+        {
+            r->routes[bestRoute]->insert(removedNode, bestPosition);
         }
     }
 }
@@ -850,13 +945,9 @@ void tabuSearch(Routes *curRoutes, BestSolution *bestSolution, double time_limit
         double bestDelta = DBL_MAX;
         bool foundMove = false;
 
-        double minDeltaSeen = DBL_MAX;
-
         for (const Move &move : neighborhood)
         {
             double delta = calculateDelta(move, curRoutes);
-            if (delta < minDeltaSeen)
-                minDeltaSeen = delta;
 
             double projectedObjective = currentObjective + delta;
             bool aspirationSatisfied = (projectedObjective < bestObjective);
@@ -890,12 +981,21 @@ void tabuSearch(Routes *curRoutes, BestSolution *bestSolution, double time_limit
         {
             performMove(bestMove, curRoutes);
             double oldCurrent = currentObjective;
+
             currentObjective = getMaxLength(curRoutes);
+
+            if (currentObjective <= 0)
+            {
+                currentObjective = oldCurrent;
+            }
 
             addToTabu(bestMove, iteration);
             if (currentObjective < bestObjective)
             {
-                if (currentObjective > 0)
+                if (currentObjective <= 0)
+                {
+                }
+                else
                 {
                     bestSolution->routes.clear();
                     bestSolution->routes.resize(k);
@@ -921,6 +1021,51 @@ void tabuSearch(Routes *curRoutes, BestSolution *bestSolution, double time_limit
     }
 }
 
+void postOptimize(Routes *finalRoutes, BestSolution *bestSolution, double totalTimeLimit, function<double()> globalElapsed)
+{
+    double timeRemaining = totalTimeLimit - globalElapsed();
+    if (timeRemaining > 3.0)
+    {
+        ejectionChains(finalRoutes);
+    }
+
+    timeRemaining = totalTimeLimit - globalElapsed();
+    if (timeRemaining > 2.0)
+    {
+        for (int i = 0; i < k; i++)
+        {
+            if (globalElapsed() >= totalTimeLimit)
+                break;
+            twoOptRoute(finalRoutes->routes[i]);
+        }
+    }
+
+    timeRemaining = totalTimeLimit - globalElapsed();
+    if (timeRemaining > 0.5)
+    {
+        balanceRoutes(finalRoutes, timeRemaining - 0.2);
+    }
+
+    double finalObjective = getMaxLength(finalRoutes);
+
+    if (finalObjective <= bestSolution->objective)
+    {
+        bestSolution->routes.clear();
+        bestSolution->routes.resize(k);
+        for (int i = 0; i < k; i++)
+        {
+            bestSolution->routes[i].clear();
+            Node *cur = finalRoutes->routes[i]->start->next;
+            while (cur != nullptr)
+            {
+                bestSolution->routes[i].push_back(cur->val);
+                cur = cur->next;
+            }
+        }
+        bestSolution->objective = finalObjective;
+    }
+}
+
 void solve()
 {
     using clk = chrono::steady_clock;
@@ -939,7 +1084,7 @@ void solve()
 
     BestSolution bestSolution;
 
-    double tabuTimeLimit = 28.5;
+    double tabuTimeLimit = 27.5;
     double stall_time = 1.5;
     tabuSearch(initialRoutes, &bestSolution, tabuTimeLimit, stall_time);
 
@@ -952,41 +1097,7 @@ void solve()
         }
     }
 
-    double timeRemaining = totalTimeLimit - globalElapsed();
-    if (timeRemaining > 1)
-    {
-        for (int i = 0; i < k; i++)
-        {
-            if (globalElapsed() >= totalTimeLimit)
-                break;
-            twoOptRoute(finalRoutes.routes[i]);
-        }
-    }
-
-    timeRemaining = totalTimeLimit - globalElapsed();
-    if (timeRemaining > 0.5)
-    {
-        balanceRoutes(&finalRoutes, timeRemaining - 0.2);
-    }
-
-    double finalObjective = getMaxLength(&finalRoutes);
-
-    if (finalObjective <= bestSolution.objective)
-    {
-        bestSolution.routes.clear();
-        bestSolution.routes.resize(k);
-        for (int i = 0; i < k; i++)
-        {
-            bestSolution.routes[i].clear();
-            Node *cur = finalRoutes.routes[i]->start->next;
-            while (cur != nullptr)
-            {
-                bestSolution.routes[i].push_back(cur->val);
-                cur = cur->next;
-            }
-        }
-        bestSolution.objective = finalObjective;
-    }
+    postOptimize(&finalRoutes, &bestSolution, totalTimeLimit, globalElapsed);
 
     finalRoutes.printRoutes();
 }
