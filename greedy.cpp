@@ -62,7 +62,7 @@ struct Sol {
 
 Node *nodes[N];
 Route *rt[K];
-multiset<int> st;
+// multiset<int> st;
 
 void prt() {
   cout << k << "\n";
@@ -105,11 +105,11 @@ void greedy() {
     // cerr << nodes[i]->i << " " << l << "\n";
   }
   // exit(0);
-  for (int i = 0; i < k; i++) st.insert(rt[i]->weight);
+  // for (int i = 0; i < k; i++) st.insert(rt[i]->weight);
 }
 
 int main() {
-  #define taskname ""
+  #define taskname "1"
   for (string iext : {"in", "inp"}) {
     if (fopen((taskname"." + iext).c_str(), "r")) {
       freopen((taskname"." + iext).c_str(), "r", stdin);
@@ -131,6 +131,7 @@ int main() {
 
   for (int i = 1; i < n; i++) { nodes[i] = new Node(i); }
   for (int i = 0; i < k; i++) rt[i] = new Route();
+
   greedy();
   prt();
   
