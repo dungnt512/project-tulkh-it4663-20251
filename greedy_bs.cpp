@@ -99,7 +99,9 @@ void prt() {
   cout << best_sol;
 }
 
+vector<int> ords;
 
+// int greedy(int first) {
 int greedy() {
   for (int i = 1; i < n; i++) { 
     if (nodes[i]) delete nodes[i];
@@ -110,12 +112,19 @@ int greedy() {
     rt[i] = new Route();
   }
 
+  // if (first) {
+  //   for (int i = 0; i < n - 1; i++) id[i] = ords[i];
+  // }
+  // else {
   shuffle(id + 1, id + n, rng);
+  // }
   for (int i = 0; i < k; i++) rt[i]->en->i = n;
   // cerr << "ok\n";
   for (int it = 1; it < n; it++) {
     int i = id[it];
-    int mn = inf, l = -1;
+    pair<int, int> mn = {inf, inf};
+    // int mn = inf;
+    int l = -1;
     Node *best;
     for (int j = 0; j < k; j++) {
       auto &r = rt[j];
@@ -124,7 +133,9 @@ int greedy() {
       // cerr << it << " " << r->en << "\n";
       while (it != r->en) {
         // cerr << it->i << " ";
-        if (minimize(mn, r->weight - dist[it->i][it->R->i] + dist[it->i][i] + dist[i][it->R->i])) {
+        int t = -dist[it->i][it->R->i] + dist[it->i][i] + dist[i][it->R->i];
+        // if (minimize(mn, r->weight - dist[it->i][it->R->i] + dist[it->i][i] + dist[i][it->R->i])) {
+        if (minimize(mn, pair<int, int>{r->weight + t, t})) {
           l = j;
           best = it;
         }
@@ -139,12 +150,63 @@ int greedy() {
       nodes[i]->L = best;
       best->R->L = nodes[i];
       best->R = nodes[i];
-      rt[l]->weight = mn;
+      // rt[l]->weight = mn;
+      rt[l]->weight = mn.first;
       rt[l]->cnt++;
     }
     // cerr << nodes[i]->i << " " << l << "\n";
   }
   // exit(0);
+
+  int mx = 0;
+  for (int i = 0; i < k; i++) maximize(mx, rt[i]->weight);
+  return mx;
+  // for (int i = 0; i < k; i++) st.insert(rt[i]->weight);
+}
+
+int greedy_B(int B) {
+  for (int i = 1; i < n; i++) { 
+    if (nodes[i]) delete nodes[i];
+    nodes[i] = new Node(i); 
+  }
+  for (int i = 0; i < k; i++) {
+    if (rt[i]) delete rt[i];
+    rt[i] = new Route();
+  }
+
+  shuffle(id + 1, id + n, rng);
+  for (int i = 0; i < k; i++) rt[i]->en->i = n + k - 1;
+  // for (int it = 1; it < n; it++) {
+  for (auto it : ords) {
+    int i = id[it];
+    int l = -1;
+    pair<int, int> mn = {inf, inf};
+    Node *best;
+    for (int j = 0; j < k; j++) {
+      auto &r = rt[j];
+      auto it = r->st;
+      while (it != r->en) {
+        int t = -dist[it->i][it->R->i] + dist[it->i][i] + dist[i][it->R->i];
+        if (r->weight + t <= B && minimize(mn, pair<int, int>{t, r->weight + t})) {
+          l = j;
+          best = it;
+        }
+        it = it->R;
+      }
+    }
+
+    if (~l) {
+      nodes[i]->R = best->R;
+      nodes[i]->L = best;
+      best->R->L = nodes[i];
+      best->R = nodes[i];
+      rt[l]->weight += mn.first;
+      rt[l]->cnt++;
+    }
+    else {
+      return inf;
+    }
+  }
 
   int mx = 0;
   for (int i = 0; i < k; i++) maximize(mx, rt[i]->weight);
@@ -283,17 +345,16 @@ bool check_(int B, int printed = 0) {
   return !m;
 }
 
-vector<int> ords;
 vector<vector<int>> adj;
 
 void dfs(int u) {
-  ords.push_back(u);
 
   sort(begin(adj[u]), end(adj[u]), [&](int a, int b) {
     return dist[u][a] < dist[u][b];
   });
 
   for (auto v : adj[u]) {
+    ords.push_back(v);
     dfs(v);
   }
 }
@@ -325,52 +386,71 @@ void dijk() {
   dfs(0);
 }
 
-bool check(int B, int printed = 0) {
-  int cur = 0, p = 0;
-  if (printed) {
-    vector<vector<int>> rt{{}};
-    cerr << rt.size() << "\n";
-    for (auto u : ords) {
-      if (cur + dist[p][u] > B) {
-        if (rt.size() >= k) {
-          return 0;
-        }
-        cur = dist[0][u];
-        rt.push_back({0, u});
-      }
-      else {
-        cur += dist[p][u];
-        rt.back().push_back(u);
-      }
-      p = u;
-    }
-    while (rt.size() < k) rt.push_back({0});
-    cout << k << "\n";
-    for (auto &v : rt) {
-      for (auto &u : v) cout << u << " ";
-      cout << "\n";
-    }
-    return 1;
-  }
-  else {
-    int cnt = 1;
-    for (auto u : ords) {
-      if (cur + dist[p][u] > B) {
-        if (cnt >= k) {
-          return 0;
-        }
-        cnt++;
-        cur = dist[0][u];
-      }
-      else {
-        cur += dist[p][u];
-      }
-      p = u;
-    }
-    return 1;
-  }
+int curr;
 
-  return 1;
+bool check(int B, ll TL) {
+  if (B >= curr) {
+    return 1;
+  }
+  int T = inf;
+  auto start_time = chrono::steady_clock::now().time_since_epoch().count();
+  // for (int it = 0; it < 10; it++) {
+  // while (chrono::steady_clock::now().time_since_epoch().count() - start_time < TL) {
+    int t = greedy_B(B);
+    minimize(T, t);
+    if (minimize(curr, t)) {
+      best_sol = Sol(1);
+    }
+  // }
+
+  cerr << "4. " << (TL / 1e9) << " " << B << " " << T << "\n";
+
+  return T <= B;
+  // int cur = 0, p = 0;
+  // if (printed) {
+  //   vector<vector<int>> rt{{}};
+  //   cerr << rt.size() << "\n";
+  //   for (auto u : ords) {
+  //     if (cur + dist[p][u] > B) {
+  //       if (rt.size() >= k) {
+  //         return 0;
+  //       }
+  //       cur = dist[0][u];
+  //       rt.push_back({0, u});
+  //     }
+  //     else {
+  //       cur += dist[p][u];
+  //       rt.back().push_back(u);
+  //     }
+  //     p = u;
+  //   }
+  //   while (rt.size() < k) rt.push_back({0});
+  //   cout << k << "\n";
+  //   for (auto &v : rt) {
+  //     for (auto &u : v) cout << u << " ";
+  //     cout << "\n";
+  //   }
+  //   return 1;
+  // }
+  // else {
+  //   int cnt = 1;
+  //   for (auto u : ords) {
+  //     if (cur + dist[p][u] > B) {
+  //       if (cnt >= k) {
+  //         return 0;
+  //       }
+  //       cnt++;
+  //       cur = dist[0][u];
+  //     }
+  //     else {
+  //       cur += dist[p][u];
+  //     }
+  //     p = u;
+  //   }
+  //   return 1;
+  // }
+
+  // return 1;
 }
 
 const int TL = 29; // seconds
@@ -399,54 +479,59 @@ int main() {
 
 
   // int curr = greedy();
-  int curr = inf;
+  curr = inf;
   // for (int it = 0; it < 8000; it++) {
   auto start_time = chrono::steady_clock::now().time_since_epoch().count();
-  ll TL = ::TL * 1000000000LL;
-  while (chrono::steady_clock::now().time_since_epoch().count() - start_time < TL) {
+  ll TL = n > 20 ? ::TL * 1000000000LL : 1000000000LL;
+  dijk();
+  ll TL1 = TL;
+  // int cnt = 0;
+  while (chrono::steady_clock::now().time_since_epoch().count() - start_time < TL1) {
     if (minimize(curr, greedy())) {
       best_sol = Sol(1);
     }
+    // cnt++;
   }
-  cerr << curr << "\n";
+  cerr << "1. " << curr << "\n";
   prt();
+  return 0;
 
+
+
+  for (int i = n; i + 1 < n + k; i++) {
+    for (int j = 0; j < n; j++) {
+      dist[i][j] = dist[0][j];
+      dist[j][i] = dist[j][0];
+    }
+    for (int j = n; j < i; j++) {
+      dist[i][j] = dist[j][i] = inf;
+    }
+  }
+
+  auto [tot, edges] = prim();
+
+  int lo = (tot + k - 1) / k, hi = curr;
+  int best = -1;
+  cerr << "2. " << tot << " " << lo << " " << hi << "\n";
   // return 0;
-
-  // for (int i = n; i + 1 < n + k; i++) {
-  //   for (int j = 0; j < n; j++) {
-  //     dist[i][j] = dist[0][j];
-  //     dist[j][i] = dist[j][0];
-  //   }
-  //   for (int j = n; j < i; j++) {
-  //     dist[i][j] = dist[j][i] = inf;
-  //   }
-  // }
-
-  // auto [tot, edges] = prim();
-
-  // int lo = (tot + k - 1) / k, hi = curr;
-  // int best = -1;
-  // // cerr << tot << " " << lo << " " << hi << "\n";
-  // dijk();
-  // // return 0;
-
-  // while (lo <= hi) {
-  //   int mid = lo + hi >> 1;
-  //   if (check(mid)) {
-  //     best = mid;
-  //     hi = mid - 1;
-  //   }
-  //   else {
-  //     lo = mid + 1;
-  //   }
-  // }
-  // cerr << best << "\n";
+  ll TL2 = (TL - TL1) / __lg(hi - lo + 1);  
+  while (lo <= hi) {
+    int mid = lo + hi >> 1;
+    if (check(mid, TL2)) {
+      best = mid;
+      hi = mid - 1;
+    }
+    else {
+      lo = mid + 1;
+    }
+  }
+  cerr << "3. " << best << " " << curr << "\n";
 
   // if (~best) 
   //   check(best, 1);
   // else
   //   prt();
+  prt();
   
   return 0;
 }
