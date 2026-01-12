@@ -484,7 +484,8 @@ int main() {
   auto start_time = chrono::steady_clock::now().time_since_epoch().count();
   ll TL = n > 20 ? ::TL * 1000000000LL : 1000000000LL;
   dijk();
-  ll TL1 = TL;
+  // ll TL1 = TL;
+  ll TL1 = TL / 3;
   // int cnt = 0;
   while (chrono::steady_clock::now().time_since_epoch().count() - start_time < TL1) {
     if (minimize(curr, greedy())) {
@@ -493,8 +494,8 @@ int main() {
     // cnt++;
   }
   cerr << "1. " << curr << "\n";
-  prt();
-  return 0;
+  // prt();
+  // return 0;
 
 
 
