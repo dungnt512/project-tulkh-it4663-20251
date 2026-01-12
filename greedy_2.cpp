@@ -123,8 +123,10 @@ int main()
     cin.tie(0);
     cout.tie(0);
 
-    if (fopen(".inp", "r"))
-        freopen(".inp", "r", stdin);
+    // if (fopen(".inp", "r"))
+    //     freopen(".inp", "r", stdin);
+
+    clock_t start_time = clock();
 
     cin >> n >> k;
     for (int i = 0; i <= n; ++i)
@@ -135,7 +137,6 @@ int main()
         dist[i][0] = 0;
 
     int n_case = 500;
-    clock_t start_time = clock();
     double time_limit = 29.8;
 
     while (((double)(clock() - start_time) / CLOCKS_PER_SEC) < time_limit)
@@ -143,7 +144,10 @@ int main()
         process_shuffle();
     }
 
-    cout << k << "\n";
+    cerr << current_minimum << endl;
+
+    cout
+        << k << "\n";
     for (int t = 1; t <= k; ++t)
     {
         cout << best_R[t] << ' ';
@@ -151,4 +155,6 @@ int main()
             cout << best_q[t][j] << ' ';
         cout << '\n';
     }
+
+    cerr << (int)(double)(clock() - start_time) * 1000 / CLOCKS_PER_SEC << endl;
 }

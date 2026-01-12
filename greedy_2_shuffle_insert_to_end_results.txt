@@ -1,0 +1,40 @@
+n = 6, k = ?
+Objective value = 10
+Runtime = 29000ms
+-------------------------
+n = 10, k = ?
+Objective value = 28
+Runtime = 29000ms
+-------------------------
+n = 100, k = ?
+Objective value = 33
+Runtime = 29000ms
+-------------------------
+n = 200, k = ?
+Objective value = 27
+Runtime = 29000ms
+-------------------------
+n = 500, k = ?
+Objective value = 97
+Runtime = 29000ms
+-------------------------
+n = 600, k = ?
+Objective value = 72
+Runtime = 29000ms
+-------------------------
+n = 700, k = ?
+Objective value = 76
+Runtime = 29000ms
+-------------------------
+n = 800, k = ?
+Objective value = 77
+Runtime = 29000ms
+-------------------------
+n = 900, k = ?
+Objective value = 80
+Runtime = 29000ms
+-------------------------
+n = 1000, k = ?
+Objective value = 83
+Runtime = 29000ms
+-------------------------

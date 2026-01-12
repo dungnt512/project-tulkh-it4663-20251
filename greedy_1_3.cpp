@@ -226,155 +226,13 @@ void process_4()
     update_best();
 }
 
-void process_5()
-{
-
-    reset_data();
-
-    for (int _ = 0; _ < n; ++_)
-    {
-        int sum_min = INT_MAX;
-        int node, id_g, prv_node;
-
-        for (int u = 1; u <= n; ++u)
-            if (!picked[u])
-            {
-                for (int i = 1; i <= k; ++i)
-                {
-                    if (R[i] > 50)
-                        continue;
-                    for (int j = R[i]; j <= R[i]; ++j)
-                    {
-                        int p_node = q[i][j];
-                        int n_node = nxt[p_node][i];
-                        int s = sum[i] - dist[p_node][n_node] + dist[p_node][u] + dist[u][n_node];
-
-                        if (sum_min > s)
-                        {
-                            sum_min = s;
-                            id_g = i;
-                            node = u;
-                            prv_node = p_node;
-                        }
-                    }
-                }
-            }
-
-        int nxt_node = nxt[prv_node][id_g];
-        group[node] = id_g;
-        sum[id_g] = sum[id_g] - dist[prv_node][nxt_node] + dist[prv_node][node] + dist[node][nxt_node];
-        q[id_g][++R[id_g]] = node;
-        picked[node] = true;
-
-        nxt[node][id_g] = nxt_node;
-        nxt[prv_node][id_g] = node;
-    }
-
-    update_best();
-}
-
-void process_6()
-{
-
-    reset_data();
-
-    for (int _ = 0; _ < n; ++_)
-    {
-        int sum_min = INT_MAX;
-        int node, id_g, prv_node;
-
-        for (int u = 1; u <= n; ++u)
-            if (!picked[u])
-            {
-                for (int i = 1; i <= k; ++i)
-                {
-                    if (R[i] > 50)
-                        continue;
-                    for (int j = 1; j <= R[i]; ++j)
-                    {
-                        int p_node = q[i][j];
-                        int n_node = nxt[p_node][i];
-                        int s = sum[i] - dist[p_node][n_node] + dist[p_node][u] + dist[u][n_node];
-
-                        if (sum_min > s)
-                        {
-                            sum_min = s;
-                            id_g = i;
-                            node = u;
-                            prv_node = p_node;
-                        }
-                    }
-                }
-            }
-
-        int nxt_node = nxt[prv_node][id_g];
-        group[node] = id_g;
-        sum[id_g] = sum[id_g] - dist[prv_node][nxt_node] + dist[prv_node][node] + dist[node][nxt_node];
-        q[id_g][++R[id_g]] = node;
-        picked[node] = true;
-
-        nxt[node][id_g] = nxt_node;
-        nxt[prv_node][id_g] = node;
-    }
-
-    update_best();
-}
-
-void process_7()
-{
-
-    reset_data();
-
-    for (int _ = 0; _ < n; ++_)
-    {
-        int sum_min = INT_MAX;
-        int node, id_g, prv_node;
-
-        for (int u = 1; u <= n; ++u)
-            if (!picked[u])
-            {
-                for (int i = 1; i <= k; ++i)
-                {
-                    if (R[i] > 50)
-                        continue;
-                    for (int j = R[i]; j > 0; --j)
-                    {
-                        int p_node = q[i][j];
-                        int n_node = nxt[p_node][i];
-                        int s = sum[i] - dist[p_node][n_node] + dist[p_node][u] + dist[u][n_node];
-
-                        if (sum_min > s)
-                        {
-                            sum_min = s;
-                            id_g = i;
-                            node = u;
-                            prv_node = p_node;
-                        }
-                    }
-                }
-            }
-
-        int nxt_node = nxt[prv_node][id_g];
-        group[node] = id_g;
-        sum[id_g] = sum[id_g] - dist[prv_node][nxt_node] + dist[prv_node][node] + dist[node][nxt_node];
-        q[id_g][++R[id_g]] = node;
-        picked[node] = true;
-
-        nxt[node][id_g] = nxt_node;
-        nxt[prv_node][id_g] = node;
-    }
-
-    update_best();
-}
-
 int main()
 {
     ios::sync_with_stdio(0);
     cin.tie(0);
     cout.tie(0);
 
-    if (fopen(".inp", "r"))
-        freopen(".inp", "r", stdin);
+    clock_t start_time = clock();
 
     cin >> n >> k;
     for (int i = 0; i <= n; ++i)
@@ -388,9 +246,6 @@ int main()
     process_2();
     process_3();
     process_4();
-    // process_5();
-    // process_6();
-    // process_7();
 
     cout << k << "\n";
     for (int t = 1; t <= k; ++t)
@@ -400,4 +255,7 @@ int main()
             cout << best_q[t][j] << ' ';
         cout << '\n';
     }
+
+    cerr << current_minimum << endl;
+    cerr << (int)(double)(clock() - start_time) * 1000 / CLOCKS_PER_SEC << endl;
 }
