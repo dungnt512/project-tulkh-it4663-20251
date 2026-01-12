@@ -6,7 +6,7 @@ import re
 import io
 
 # --- CẤU HÌNH ---
-CPP_SOURCE = "VRP_MinMax_greedy.cpp"          # Tên file source code của bạn
+CPP_SOURCE = "Greedy_bottle.cpp"          # Tên file source code của bạn
 EXEC_PATH = "./my_algorithm"     # Tên file sau khi biên dịch
 TESTCASE_DIR = "./testcase"      # Thư mục chứa các file .inp
 OUTPUT_FILE = "benchmark_results.txt"

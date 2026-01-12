@@ -1474,17 +1474,17 @@ int main() {
   // seed = 159321169871000ull;
   seed = 159836945789200ull;
 
-  cerr << seed << "\n";
+  // cerr << seed << "\n";
   rng.seed(seed);
 
-  #define taskname "2"
-  for (string iext : {"in", "inp"}) {
-    if (fopen((taskname"." + iext).c_str(), "r")) {
-      freopen((taskname"." + iext).c_str(), "r", stdin);
-      freopen(taskname".out", "w", stdout);
-      break;
-    }
-  }
+  // #define taskname "2"
+  // for (string iext : {"in", "inp"}) {
+  //   if (fopen((taskname"." + iext).c_str(), "r")) {
+  //     freopen((taskname"." + iext).c_str(), "r", stdin);
+  //     freopen(taskname".out", "w", stdout);
+  //     break;
+  //   }
+  // }
 
   cin.tie(0)->sync_with_stdio(0);
 
@@ -1568,7 +1568,7 @@ int main() {
 
   // cerr << best.O.mx << " " << seed << "\n";
 
-  cerr << best.O.mx << "\n";
+  cerr << best.O.mx << "\n" << el() * 1000. << "\n";
   cout << best;
 
   return 0;
