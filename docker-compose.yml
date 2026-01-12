@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  benchmark-service:
+    build: .
+    container_name: cpp_tester
+    # Ánh xạ toàn bộ thư mục gốc của dự án vào /app trong container
+    volumes:
+      - .:/app
+    # Thư mục làm việc sẽ là nơi chứa file script python
+    working_dir: /app
+    # Lệnh chạy script khi container khởi động
+    command: python3 benchmark.py
+    # Đảm bảo không bị lỗi quyền ghi file trên một số hệ thống Linux
+    user: "root"
